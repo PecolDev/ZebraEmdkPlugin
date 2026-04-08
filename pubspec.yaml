@@ -1,9 +1,6 @@
 name: zebra_emdk_plugin
-description: >-
-  A Flutter plugin for Zebra Android devices using the EMDK SDK.
-  Supports barcode scanning, scanner configuration, profile management,
-  LED/beep/vibrate notifications, and OEM device info queries.
-version: 0.1.0
+description: A Flutter plugin for Zebra Android devices using the EMDK SDK.
+version: 0.1.1
 homepage: https://github.com/PecolDev/ZebraEmdkPlugin
 repository: https://github.com/PecolDev/ZebraEmdkPlugin
 issue_tracker: https://github.com/PecolDev/ZebraEmdkPlugin
