@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="dev.pecol.zebra_emdk_plugin">
+
+    <uses-permission android:name="com.symbol.emdk.permission.EMDK" />
+    <uses-permission android:name="com.zebra.provider.READ" />
+
+    <application>
+        <uses-library android:name="com.symbol.emdk"/>
+    </application>
+
+    <queries>
+        <package android:name="com.symbol.emdk.emdkservice" />
+        <package android:name="com.zebra.zebracontentprovider" />
+        <provider android:authorities="oem_info" />
+    </queries>
+</manifest>
