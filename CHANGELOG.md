@@ -1,3 +1,7 @@
+## 0.1.1
+
+* Shortened .yaml description
+
 ## 0.1.0
 
 * Initial release of `zebra_emdk_plugin`.
