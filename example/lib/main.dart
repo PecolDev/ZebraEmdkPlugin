@@ -35,17 +35,20 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late final ZebraEMDK emdk;
+  ZebraEMDK? emdk;
 
   @override
-  void initState() {
-    super.initState();
-    
+  void dispose() {
+    disposeEMDK();
+    super.dispose();
+  }
+
+  void initializeEmdk(){
     emdk = ZebraEMDK();
     
-    emdk.initialize();
+    emdk!.initialize();
 
-    emdk.onDataRead.listen((data) async {
+    emdk!.onDataRead.listen((data) async {
       log('[EMDK_APP] Scan Event Received! Result: ${data?.result?.value}');
       
       if (data?.scanData != null && data!.scanData!.isNotEmpty) {
@@ -62,6 +65,11 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void disposeEMDK(){
+    emdk?.dispose();
+    emdk = null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,8 +82,16 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
+              onPressed: () => initializeEmdk(),
+              child: Text('Initialize EMDK')
+            ),
+            ElevatedButton(
+              onPressed: () => disposeEMDK(),
+              child: Text('Dispose EMDK')
+            ),
+            ElevatedButton(
               onPressed: () async {
-                var a = await emdk.getPeripheralDeviceInfo();
+                var a = await emdk!.getPeripheralDeviceInfo();
 
                 if(a == ""){
                   
@@ -86,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                var a = await emdk.getPeripheralBatteryInfo();
+                var a = await emdk!.getPeripheralBatteryInfo();
 
                 if(a == ""){
 
@@ -107,7 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: (){
-                emdk.setScannerConfig(
+                emdk!.setScannerConfig(
                   ScannerConfig(
                     ngSimulScanParams: NGSimulScanParams(
                       ngSimulScanMode: NGSimulScanMode.none
@@ -120,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             ElevatedButton(
               onPressed: (){
-                emdk.setScannerConfig(
+                emdk!.setScannerConfig(
                   ScannerConfig(
                     ngSimulScanParams: NGSimulScanParams(
                       ngSimulScanMode: NGSimulScanMode.multiBarcode,
@@ -135,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             ElevatedButton(
               onPressed: (){
-                emdk.notifyDevice(
+                emdk!.notifyDevice(
                   NotificationCommand(
                     vibrate: NotificationVibrateParams(time: 2000),
                     led: NotificationLEDParams(color: 0xFF0000, onTime: 200, offTime: 200, repeatCount: 3),

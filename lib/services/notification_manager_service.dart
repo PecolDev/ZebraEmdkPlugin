@@ -14,7 +14,24 @@ class NotificationManagerService extends PlatformServiceBase {
   }
 
   /// Initializes the Barcode Manager and implements the connection listener.
-  Future<bool?> initialize() async => await invokeMethod<bool>("initialize");
+  Future<bool> initialize() async {
+    var result = await invokeMethod<bool>("initialize");
+
+    if (result != null) return result;
+    
+    return false;
+  }
+
+  Future<bool> dispose() async {
+    await _notificationDeviceService?.dispose();
+    _notificationDeviceService = null;
+
+    var result = await invokeMethod<bool>("dispose");
+
+    if (result != null) return result;
+    
+    return false;
+  }
 
   /// Gets a list of all supported notification devices on this hardware.
   Future<List<NotificationDeviceInfo>?> getSupportedDevices() async {

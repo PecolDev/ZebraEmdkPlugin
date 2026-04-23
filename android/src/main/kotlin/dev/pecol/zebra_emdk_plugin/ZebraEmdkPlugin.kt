@@ -70,12 +70,8 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
         scannerEventChannel?.setStreamHandler(null)
         profileManagerEventChannel?.setStreamHandler(null)
 
-        // Dispose resources in dependency order before releasing the EMDK manager
-        safeDisposeScanner()
-        safeDisposeNotificationDevice()
+        disposeEMDKManager()
 
-        emdkManager?.release()
-        emdkManager = null
         applicationContext = null
     }
 
@@ -96,6 +92,7 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
                 }
                 result.success(initEMDKManager(ctx))
             }
+            "emdkManager#dispose" -> result.success(disposeEMDKManager())
 
             // barcodeManager Prefix
             "barcodeManager#initialize" -> result.success(initBarcodeManager())
@@ -129,6 +126,7 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
 
             // notificationManager Prefix
             "notificationManager#initialize" -> result.success(initNotificationManager())
+            "notificationManager#dispose" -> result.success(disposeNotificationManager())
             "notificationManager#getSupportedDevices" -> result.success(getSupportedNotificationDevices())
             "notificationManager#setNotificationDeviceByFriendlyName" -> {
                 val friendlyName = call.arguments as? String
@@ -155,6 +153,7 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
 
             // profileManager Prefix
             "profileManager#initialize" -> result.success(initProfileManager())
+            "profileManager#dispose" -> result.success(disposeProfileManager())
             "profileManager#processProfile" -> {
                 @Suppress("UNCHECKED_CAST")
                 val args = call.arguments as? Map<String, Any?>
@@ -219,14 +218,27 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
         return results.statusCode.name
     }
 
+    private fun disposeEMDKManager(): Boolean {
+        disposeBarcodeManager()
+
+        disposeNotificationManager()
+
+        disposeProfileManager()
+
+        emdkManager?.release()
+        emdkManager = null
+
+        return true
+    }
+
     override fun onOpened(emdkManager: EMDKManager?) {
         this.emdkManager = emdkManager
         emdkManagerEventSink?.sendEvent("onOpened")
     }
 
     override fun onClosed() {
-        emdkManager?.release()
-        emdkManager = null
+        disposeEMDKManager()
+
         emdkManagerEventSink?.sendEvent("onClosed")
     }
     // **************************************************************************
@@ -267,6 +279,7 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
     }
 
     private fun disposeBarcodeManager(): Boolean {
+        disposeScanner()
         barcodeManager?.removeConnectionListener(this)
         barcodeManager = null
         return true
@@ -348,32 +361,23 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
             true
         } catch (e: ScannerException) {
             Log.e(TAG, "initializeScanner() ScannerException: ${e.message}", e)
-            safeDisposeScanner()
+            disposeScanner()
             false
         } catch (e: Exception) {
             Log.e(TAG, "initializeScanner() unexpected exception: ${e.message}", e)
-            safeDisposeScanner()
+            disposeScanner()
             false
         }
     }
 
     private fun disposeScanner(): Boolean {
-        safeDisposeScanner()
-        return true
-    }
+        scanner?.disable()
+        scanner?.release()
+        scanner?.removeDataListener(this)
+        scanner?.removeStatusListener(this)
+        scanner = null
 
-    /** Safely releases the scanner, logging any errors. Always nulls out [scanner]. */
-    private fun safeDisposeScanner() {
-        val sc = scanner ?: return
-        try {
-            sc.release()
-        } catch (e: ScannerException) {
-            Log.w(TAG, "safeDisposeScanner() ScannerException during release: ${e.message}")
-        } catch (e: Exception) {
-            Log.w(TAG, "safeDisposeScanner() unexpected exception during release: ${e.message}")
-        } finally {
-            scanner = null
-        }
+        return true
     }
 
     private fun getScannerInfo(): Map<String, Any?>? {
@@ -563,6 +567,14 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
         return true
     }
 
+    private fun disposeNotificationManager(): Boolean{
+        disposeNotificationDevice()
+
+        notificationManager = null
+
+        return true
+    }
+
     private fun getSupportedNotificationDevices(): List<Map<String, Any?>> {
         val devices = notificationManager?.supportedDevicesInfo ?: return emptyList()
 
@@ -601,26 +613,17 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
             true
         } catch (e: Exception) {
             Log.e(TAG, "initializeNotificationDevice() exception: ${e.message}", e)
-            safeDisposeNotificationDevice()
+            disposeNotificationDevice()
             false
         }
     }
 
     private fun disposeNotificationDevice(): Boolean {
-        safeDisposeNotificationDevice()
-        return true
-    }
+        notificationDevice?.disable()
+        notificationDevice?.release()
+        notificationDevice = null
 
-    /** Safely disables the notification device, logging any errors. Always nulls out [notificationDevice]. */
-    private fun safeDisposeNotificationDevice() {
-        val nd = notificationDevice ?: return
-        try {
-            nd.disable()
-        } catch (e: Exception) {
-            Log.w(TAG, "safeDisposeNotificationDevice() exception during disable: ${e.message}")
-        } finally {
-            notificationDevice = null
-        }
+        return true
     }
 
     private fun getNotificationDeviceInfo(): Map<String, Any?>? {
@@ -723,6 +726,13 @@ class ZebraEmdkPlugin : FlutterPlugin, MethodCallHandler, EMDKListener, ScannerC
         }
         profileManager!!.addDataListener(this)
         applyProfiles()
+        return true
+    }
+ 
+    private fun disposeProfileManager(): Boolean {
+        profileManager?.removeDataListener(this)
+        profileManager = null
+
         return true
     }
 

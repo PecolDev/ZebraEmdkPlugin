@@ -24,6 +24,23 @@ class EmdkManagerService extends PlatformServiceBase {
     return null;
   }
 
+  Future<bool> dispose() async {
+    await _barcodeManager?.dispose();
+    _barcodeManager = null;
+
+    await _notificationManager?.dispose();
+    _notificationManager = null;
+
+    await _profileManager?.dispose();
+    _profileManager = null;
+
+    var result = await invokeMethod<bool>("dispose");
+
+    if (result != null) return result;
+    
+    return false;
+  }
+
   /// Gets the BarcodeManagerService instance.
   /// EMDKManager must be successfully initialized first.
   BarcodeManagerService getBarcodeManager() {

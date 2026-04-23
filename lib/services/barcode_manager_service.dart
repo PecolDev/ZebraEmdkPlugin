@@ -24,7 +24,14 @@ class BarcodeManagerService extends PlatformServiceBase {
   Future<bool?> initialize() async => await invokeMethod<bool>("initialize");
 
   /// Disposes the Barcode Manager and removes the connection listener.
-  Future<bool?> dispose() async => await invokeMethod<bool>("dispose");
+  Future<bool?> dispose() async {
+    await _scannerService?.dispose();
+    _scannerService = null;
+
+    await invokeMethod<bool>("dispose");
+
+    return true;
+  }
 
   Future<List<ScannerInfo>?> getSupportedScanners() async {
     var result = await invokeMethod<Map>("getSupportedScanners");

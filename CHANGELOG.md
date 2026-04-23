@@ -1,3 +1,7 @@
+## 0.1.2
+
+* Added dispose methods for EMDK Manager and Profile Manager
+
 ## 0.1.1
 
 * Shortened .yaml description

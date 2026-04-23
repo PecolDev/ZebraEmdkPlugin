@@ -7,7 +7,7 @@ import 'package:zebra_emdk_plugin/generated/scanner_config.dart';
 import 'package:zebra_emdk_plugin/services/emdk_manager_service.dart';
 
 class ZebraEMDK {
-  late final EmdkManagerService _emdkManager;
+  late EmdkManagerService _emdkManager;
   bool _readEnabled = true;
 
   static const _scannerPriorities = [
@@ -28,6 +28,10 @@ class ZebraEMDK {
     _emdkManager.onOpened.listen((_) => _onEmdkOpened());
     
     _emdkManager.initialize();
+  }
+
+  void dispose(){
+    _emdkManager.dispose();
   }
 
   Stream<ScanDataCollection?> get onDataRead => _emdkManager.getBarcodeManager().getScannerService().onData;
@@ -133,7 +137,7 @@ class ZebraEMDK {
   Future<bool> _initializeNotificationManager() async {
     var notificationManager = _emdkManager.getNotificationManager();
 
-    if((await notificationManager.initialize()) ?? false){
+    if(await notificationManager.initialize()){
 
       await _setDefaultNotificationDevice();
 

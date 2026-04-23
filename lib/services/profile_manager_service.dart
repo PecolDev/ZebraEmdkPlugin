@@ -20,6 +20,12 @@ class ProfileManagerService extends PlatformServiceBase {
   /// Initialize the Profile Manager natively.
   Future<bool?> initialize() async => await invokeMethod<bool>("initialize");
 
+  Future<bool?> dispose() async {
+    _oemInfoService = null;
+
+    return await invokeMethod<bool>("dispose");
+  } 
+
   /// Processes an MX XML profile string.
   /// [profileName] - the name of the profile (e.g. "MyProfile").
   /// [xmlData] - the full MX XML string containing characteristics and parms.
