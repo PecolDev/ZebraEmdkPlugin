@@ -1,4 +1,5 @@
 import 'package:zebra_emdk_plugin/generated/emdk_manager.dart';
+import 'package:zebra_emdk_plugin/generated/key_identifiers.dart';
 import 'package:zebra_emdk_plugin/services/zep_service_base.dart';
 
 /// Dart binding for `ProfileManagerHandler` (Kotlin).
@@ -30,6 +31,24 @@ class ProfileManager extends ZepServiceBase {
   /// result is delivered via [onData].
   void requestServicePermission(String uri) {
     invokeMethod('requestServicePermission', uri);
+  }
+
+  /// Maps [key] to send a `KEY_DOWN_EVENT` broadcast intent when pressed.
+  ///
+  /// Use [KeyIdentifier] enum values for named keys (e.g. [KeyIdentifier.p1]).
+  ///
+  /// This is fire-and-forget: the method returns immediately and the native
+  /// result is delivered via [onData].
+  void addKeyListener(KeyIdentifier key) {
+    invokeMethod('addKeyListener', key.value);
+  }
+
+  /// Resets all key mappings to their factory defaults.
+  ///
+  /// This is fire-and-forget: the method returns immediately and the native
+  /// result is delivered via [onData].
+  void resetAllKeyMappings() {
+    invokeMethod('resetAllKeyMappings');
   }
 
   /// Queries a content provider [uri] and returns the first column of the

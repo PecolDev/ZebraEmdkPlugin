@@ -66,6 +66,22 @@ class ProfileManagerHandler : EventChannel.StreamHandler, MethodCallHandler, Dat
 
                     result.success(true)
                 }
+                "addKeyListener" -> {
+                    val key = methodCall.arguments as? String
+                    if (key == null) {
+                        result.error("INVALID_ARGS", "Expected a String argument (key)", null)
+                        return
+                    }
+
+                    addKeyListener(key)
+
+                    result.success(true)
+                }
+                "resetAllKeyMappings" -> {
+                    resetAllKeyMappings()
+
+                    result.success(true)
+                }
                 "resolveCursorUri" -> {
                     val uriTarget = methodCall.arguments as? String
                     if (uriTarget == null) {
@@ -106,22 +122,19 @@ class ProfileManagerHandler : EventChannel.StreamHandler, MethodCallHandler, Dat
     private var currentProfileName: String? = null
 
     override fun onData(resultData: ResultData?) {
-        val finishedProfile = currentProfileName
-
-        synchronized(this) {
-            if (finishedProfile != null) {
-                pendingProfiles.remove(finishedProfile)
-            }
-
-            currentProfileName = null
-            isProcessing = false
-        }
-
         if (eventSink != null) {
             eventSink!!.sendEvent(
                 "onData",
                 resultData?.toMap() ?: emptyMap()
             )
+        }
+
+        synchronized(this) {
+            if (currentProfileName != null) {
+                pendingProfiles.remove(currentProfileName)
+            }
+            currentProfileName = null
+            isProcessing = false
         }
 
         executeNextProfile()
@@ -144,21 +157,23 @@ class ProfileManagerHandler : EventChannel.StreamHandler, MethodCallHandler, Dat
     }
 
     private fun executeNextProfile() {
+        // Determine the next profile to run while holding the lock,
+        // but perform the actual async call outside to avoid deadlocks
+        // if the EMDK callback fires on the same thread.
+        val entry: Map.Entry<String, String>?
+
         synchronized(this) {
-            if (isProcessing) return
-            if (pendingProfiles.isEmpty()) return
-
-            val firstEntry = pendingProfiles.entries.first()
-
-            currentProfileName = firstEntry.key
+            if (isProcessing || pendingProfiles.isEmpty()) return
+            entry = pendingProfiles.entries.first()
+            currentProfileName = entry!!.key
             isProcessing = true
-
-            profileManager.processProfileAsync(
-                firstEntry.key,
-                ProfileManager.PROFILE_FLAG.SET,
-                arrayOf(firstEntry.value)
-            )
         }
+
+        profileManager.processProfileAsync(
+            entry!!.key,
+            ProfileManager.PROFILE_FLAG.SET,
+            arrayOf(entry.value)
+        )
     }
 
     private fun requestServicePermission(uriTarget: String) {
@@ -169,6 +184,34 @@ class ProfileManagerHandler : EventChannel.StreamHandler, MethodCallHandler, Dat
                 "<parm name=\"CallerPackageName\" value=\"${applicationContext.packageName}\" />" +
                 "<parm name=\"CallerSignature\" value=\"${getAppSignature()}\" />" +
                 "</characteristic>"
+
+        processProfile(characteristic)
+    }
+
+    private fun addKeyListener(key: String) {
+        val characteristic: String = "<characteristic type=\"KeyMappingMgr\">" +
+                                    "<parm name=\"Action\" value=\"1\"/>" +
+                                    "<characteristic type=\"KeyMapping\">" +
+                                        "<parm name=\"KeyIdentifier\" value=\"$key\"/>" +
+                                        "<characteristic type=\"BaseTable\">" +
+                                            "<parm name=\"BaseBehavior\" value=\"3\"/>" +
+                                            "<parm name=\"BaseSendIntent\" value=\"1\"/>" +
+                                            "<parm name=\"BaseIntentType\" value=\"2\"/>" +
+                                            "<parm name=\"BaseIntentAction\" value=\"${applicationContext.packageName}.KEY_DOWN_EVENT\"/>" +
+                                            "<parm name=\"BaseIntentPackage\" value=\"${applicationContext.packageName}\"/>" +
+                                            "<parm name=\"BaseIntentStringExtraName\" value=\"key\"/>" +
+                                            "<parm name=\"BaseIntentStringExtraValue\" value=\"$key\"/>" +
+                                        "</characteristic>" +
+                                    "</characteristic>" +
+                                    "</characteristic>"
+
+        processProfile(characteristic)
+    }
+
+    private fun resetAllKeyMappings() {
+        val characteristic: String = "<characteristic type=\"KeyMappingMgr\">" +
+                                    "<parm name=\"Action\" value=\"2\"/>" +
+                                    "</characteristic>"
 
         processProfile(characteristic)
     }

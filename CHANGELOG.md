@@ -1,3 +1,26 @@
+## 0.3.0
+
+**New features**
+
+* **Hardware key listener** (`KeyEventManager` / `KeyEventHandler`): Listen to physical button presses on Zebra devices via the MX `KeyMappingMgr` CSP.
+  * `EmdkManager.keyEventManager` — new lazy getter that returns the `KeyEventManager`.
+  * `KeyEventManager.onKeyDown` — stream that emits a `KeyIdentifier` whenever a mapped key is pressed.
+  * `ProfileManager.addKeyListener(KeyIdentifier)` — maps a key to send a `KEY_DOWN_EVENT` broadcast to the app (fire-and-forget, result on `onData`).
+  * `ProfileManager.resetAllKeyMappings()` — resets all key mappings to factory defaults (fire-and-forget).
+  * `KeyIdentifier` — new enum covering all ~100 Zebra MX key identifiers (number keys, alpha keys, function keys, P-buttons, trigger buttons, volume, navigation, and device-specific keys) with exact MX XML string values.
+
+* **`onDetachedFromEngine` cleanup**: `ZebraEmdkPlugin.onDetachedFromEngine` now calls `emdkManagerHandler.cleanup()`, which disposes the `KeyEventHandler` broadcast receiver and releases the EMDK manager. This prevents `ServiceConnectionLeaked` and `IntentReceiverLeaked` logcat errors on hot restart or Activity destroy.
+
+* **Application context fix**: `EmdkManagerHandler.initializeHandler` now calls `context.applicationContext` instead of using the raw Activity context, preventing EMDK service binding and BroadcastReceiver from being tied to the Activity lifecycle.
+
+**Improvements**
+
+* **Profile queue deadlock fix** (`ProfileManagerHandler`): `executeNextProfile` now captures the next `pendingProfiles` entry and sets the lock state inside `synchronized`, then calls `processProfileAsync` *outside* the lock. Previously, if the EMDK callback fired on the same thread, it could deadlock on the same monitor.
+
+* **Profile `onData` ordering fix**: The `onData` event is now fired *before* the completed profile is removed from the queue and the next one is dispatched. This guarantees that listeners always receive the result of the profile that just ran before the next profile begins.
+
+---
+
 ## 0.2.1
 
 **Improvements**

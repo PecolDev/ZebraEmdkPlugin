@@ -1,5 +1,6 @@
 import 'package:zebra_emdk_plugin/generated/emdk_manager.dart';
 import 'package:zebra_emdk_plugin/services/barcode_manager.dart';
+import 'package:zebra_emdk_plugin/services/key_event_manager.dart';
 import 'package:zebra_emdk_plugin/services/notification_manager.dart';
 import 'package:zebra_emdk_plugin/services/profile_manager.dart';
 import 'package:zebra_emdk_plugin/services/zep_service_base.dart';
@@ -20,6 +21,7 @@ class EmdkManager extends ZepServiceBase {
   BarcodeManager? _barcodeManager;
   NotificationManager? _notificationManager;
   ProfileManager? _profileManager;
+  KeyEventManager? _keyEventManager;
 
   EmdkManager() : super('emdk_manager');
 
@@ -59,6 +61,12 @@ class EmdkManager extends ZepServiceBase {
   ProfileManager get profileManager {
     _profileManager ??= ProfileManager();
     return _profileManager!;
+  }
+
+  /// Returns the [KeyEventManager] instance.
+  KeyEventManager get keyEventManager {
+    _keyEventManager ??= KeyEventManager();
+    return _keyEventManager!;
   }
 
   // ─── Events ────────────────────────────────────────────────────────────────

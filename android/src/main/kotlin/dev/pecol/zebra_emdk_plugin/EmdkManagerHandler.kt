@@ -23,6 +23,7 @@ class EmdkManagerHandler : StreamHandler, MethodCallHandler, EMDKListener {
     private var barcodeManagerHandler: BarcodeManagerHandler = BarcodeManagerHandler()
     private var notificationManagerHandler: NotificationManagerHandler = NotificationManagerHandler()
     private var profileManagerHandler: ProfileManagerHandler = ProfileManagerHandler()
+    private var keyEventHandler: KeyEventHandler = KeyEventHandler()
 
     fun setupChannels(messenger: BinaryMessenger){
         setupMethodChannel(messenger)
@@ -31,10 +32,27 @@ class EmdkManagerHandler : StreamHandler, MethodCallHandler, EMDKListener {
         barcodeManagerHandler.setupChannels(messenger)
         notificationManagerHandler.setupChannels(messenger)
         profileManagerHandler.setupChannels(messenger)
+        keyEventHandler.setupChannels(messenger)
     }
 
     fun initializeHandler(context: Context) {
-        applicationContext = context
+        // Use the Application context so EMDK's service binding (and all
+        // other sub-handlers) are not tied to the Activity lifecycle.
+        // This prevents ServiceConnectionLeaked on Activity destroy.
+        applicationContext = context.applicationContext
+        keyEventHandler.initializeHandler(context)
+    }
+
+    /// Called from MainActivity.onDestroy to release all resources.
+    fun cleanup() {
+        keyEventHandler.dispose()
+        if (::emdkManager.isInitialized) {
+            try {
+                emdkManager.release()
+            } catch (e: Exception) {
+                Log.w("EmdkManagerHandler", "Exception during cleanup release: ${e.message}")
+            }
+        }
     }
 
     // --------------------------- METHOD CHANNEL ----------------------------
@@ -114,6 +132,7 @@ class EmdkManagerHandler : StreamHandler, MethodCallHandler, EMDKListener {
             Log.w("EmdkManagerHandler", "Exception during emdkManager.release() in onClosed: ${e.message}")
         }
 
+        keyEventHandler.dispose()
         eventSink?.sendEvent("onClosed")
     }
 }

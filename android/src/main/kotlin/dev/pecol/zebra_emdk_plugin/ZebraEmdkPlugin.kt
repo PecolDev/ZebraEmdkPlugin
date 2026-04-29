@@ -11,6 +11,6 @@ class ZebraEmdkPlugin : FlutterPlugin {
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        
+        emdkManagerHandler.cleanup()
     }
 }

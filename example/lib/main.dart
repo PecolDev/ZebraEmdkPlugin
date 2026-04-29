@@ -91,6 +91,11 @@ class _MyHomePageState extends State<MyHomePage> {
       log('[EMDK_APP] -------------------------------------------------------------');
     });
 
+    emdk!.onKeyDown.listen((identifier) {
+      log('[EMDK_APP] Key Down: ${identifier?.value}');
+      log('[EMDK_APP] -------------------------------------------------------------');
+    });
+
     setState(() {
       _emdkReady = true;
       _statusMessage = 'EMDK Ready';

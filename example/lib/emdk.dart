@@ -1,6 +1,7 @@
 import 'package:zebra_emdk_plugin_example/content_uris.dart';
 import 'package:zebra_emdk_plugin/custom_models/connection_change.dart';
 import 'package:zebra_emdk_plugin/generated/emdk_manager.dart';
+import 'package:zebra_emdk_plugin/generated/key_identifiers.dart';
 import 'package:zebra_emdk_plugin/generated/notification.dart';
 import 'package:zebra_emdk_plugin/generated/scan_data.dart';
 import 'package:zebra_emdk_plugin/generated/scanner.dart';
@@ -30,6 +31,7 @@ class Emdk {
 
   Stream<ScanDataCollection?> get onDataRead => _emdkManager.barcodeManager.onData;
   Stream<ProfileResultData?> get onProfileData => _emdkManager.profileManager.onData;
+  Stream<KeyIdentifier?> get onKeyDown => _emdkManager.keyEventManager.onKeyDown;
 
   Future<void> initialize() async {
     _emdkManager = EmdkManager();
@@ -268,5 +270,12 @@ class Emdk {
     _emdkManager.profileManager.requestServicePermission(ContentUris.productModel);
     _emdkManager.profileManager.requestServicePermission(ContentUris.wifiMac);
     _emdkManager.profileManager.requestServicePermission(ContentUris.peripheralBatteryInfo);
+
+    _emdkManager.profileManager.resetAllKeyMappings();
+    _emdkManager.profileManager.addKeyListener(KeyIdentifier.p1);
+    _emdkManager.profileManager.addKeyListener(KeyIdentifier.p2);
+    _emdkManager.profileManager.addKeyListener(KeyIdentifier.p3);
+    _emdkManager.profileManager.addKeyListener(KeyIdentifier.volumeUp);
+    _emdkManager.profileManager.addKeyListener(KeyIdentifier.volumeDown);
   }
 }

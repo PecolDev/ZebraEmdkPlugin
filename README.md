@@ -15,7 +15,8 @@ Supports barcode scanning, scanner configuration (full decoder params), profile 
 | **EMDK Manager** | Initialize the EMDK service and listen for open/close events |
 | **Barcode Manager** | Enumerate/filter scanners, init by friendly name, scanner config, read control, scan data & status events |
 | **Notification Manager** | Enumerate/filter notification devices, trigger LED, beep, and vibrate notifications |
-| **Profile Manager** | Apply MX profiles asynchronously with a serialised queue, query OEM content-provider URIs |
+| **Profile Manager** | Apply MX profiles asynchronously with a serialised queue, query OEM content-provider URIs, map hardware keys |
+| **Key Event Manager** | Listen to physical button presses (P-buttons, triggers, volume keys, etc.) via MX `KeyMappingMgr` |
 
 ---
 
@@ -185,6 +186,7 @@ await emdk.barcodeManager.setConfig(updated);
 | `barcodeManager` | Lazy getter for `BarcodeManager` |
 | `notificationManager` | Lazy getter for `NotificationManager` |
 | `profileManager` | Lazy getter for `ProfileManager` |
+| `keyEventManager` | Lazy getter for `KeyEventManager` |
 | `onOpened` | Stream fired when EMDK is ready |
 | `onClosed` | Stream fired when EMDK is closed |
 
@@ -223,9 +225,50 @@ await emdk.barcodeManager.setConfig(updated);
 | `processProfileAsync(characteristics)` | Queues an MX XML characteristics block for processing |
 | `requestServicePermission(uri)` | Requests an AccessMgr content-provider permission |
 | `resolveCursorUri(uri)` | Reads a single-value Zebra OEMinfo URI |
+| `addKeyListener(key)` | Maps a `KeyIdentifier` key to send a `KEY_DOWN_EVENT` broadcast |
+| `resetAllKeyMappings()` | Resets all key mappings to factory defaults |
 | `onData` | Stream of `ProfileResultData` results |
 
+### `KeyEventManager`
+
+| Member | Description |
+|--------|-------------|
+| `onKeyDown` | Stream of `KeyIdentifier?` emitted on every mapped key press |
+
+### `KeyIdentifier`
+
+Enum with ~100 named Zebra hardware keys. Common values:
+
+| Value | Key |
+|-------|-----|
+| `KeyIdentifier.p1` … `p6` | Programmable P-buttons |
+| `KeyIdentifier.scan` | Scanner trigger |
+| `KeyIdentifier.leftTrigger1`, `rightTrigger1` | Side trigger buttons |
+| `KeyIdentifier.volumeUp`, `volumeDown` | Volume keys |
+| `KeyIdentifier.f1` … `f12` | Function keys |
+| `KeyIdentifier.enter`, `back`, `home` | System/navigation keys |
+
+See `KeyIdentifier` in `key_identifiers.dart` for the full list.
+
 ---
+
+### Listen to hardware key presses
+
+```dart
+// 1. Map the keys you want to listen to (call after EMDK is ready)
+emdk.profileManager.resetAllKeyMappings(); // optional: start clean
+emdk.profileManager.addKeyListener(KeyIdentifier.p1);
+emdk.profileManager.addKeyListener(KeyIdentifier.scan);
+
+// 2. Subscribe to key-down events
+emdk.keyEventManager.onKeyDown.listen((key) {
+  if (key == KeyIdentifier.p1) print('P1 pressed');
+  if (key == KeyIdentifier.scan) print('Scan pressed');
+});
+```
+
+---
+
 
 ## Error Handling
 
