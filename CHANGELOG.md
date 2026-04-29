@@ -1,3 +1,28 @@
+## 0.2.1
+
+**Improvements**
+
+* **Native error propagation**: All four Kotlin handler `onMethodCall` blocks are now wrapped in a top-level `try/catch`. Unhandled EMDK exceptions (`ScannerException`, `NotificationException`) and unexpected Java/Kotlin exceptions are no longer swallowed silently — they are forwarded to the Dart side as typed `PlatformException` errors with structured `code` and `details`.
+
+* **Typed Dart exceptions from `ZepServiceBase.invokeMethod`**: Instead of returning `null` on failure, `invokeMethod` now decodes the incoming `PlatformException` code and rethrows the matching Dart exception:
+
+  | Native exception        | `code`                   | Dart exception          |
+  |-------------------------|--------------------------|-------------------------|
+  | `ScannerException`      | `SCANNER_EXCEPTION`      | `ScannerException`      |
+  | `NotificationException` | `NOTIFICATION_EXCEPTION` | `NotificationException` |
+  | EMDK feature failure    | `EMDK_EXCEPTION`         | `EMDKException`         |
+  | Any other exception     | `NATIVE_EXCEPTION`       | `PlatformException`     |
+
+* **New exception classes**:
+  * `EMDKException` — thrown when the EMDK manager fails to open or a feature instance cannot be acquired. Carries an optional `EMDKResults` payload.
+  * `NotificationException` — thrown when a notification device operation fails (enable, notify). Carries a `NotificationResults` result code.
+
+* **EventChannel error guard**: `ZepServiceBase` now attaches a `.handleError()` handler to the raw event stream so unhandled EventChannel errors are logged instead of crashing the stream.
+
+* **`initScanner` / `initDevice` cleanup on failure**: In the example `Emdk` wrapper, calls to `initScanner` and `initDevice` now catch exceptions and call `deinitScanner` / `deinitDevice` to ensure the native side is always left in a clean state.
+
+---
+
 ## 0.2.0
 
 **Breaking changes**

@@ -319,3 +319,45 @@ class NotificationCommand {
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// NotificationException
+// ---------------------------------------------------------------------------
+
+/// Exception thrown by notification operations when a device-related error occurs.
+///
+/// Catch this in any notification call (e.g. `enable()`, `notify()`) to
+/// determine the specific [NotificationResults] reason for the failure.
+///
+/// See: https://techdocs.zebra.com/emdk-for-android/latest/api/reference/com/symbol/emdk/notification/NotificationException/
+class NotificationException implements Exception {
+  /// The specific result code describing why the exception was thrown.
+  final NotificationResults result;
+
+  /// Optional human-readable message accompanying the exception.
+  final String? message;
+
+  const NotificationException(this.result, [this.message]);
+
+  /// Creates a [NotificationException] from a [Map] received via the platform channel.
+  factory NotificationException.fromMap(Map<String, dynamic> map) {
+    return NotificationException(
+      map['result'] != null
+          ? NotificationResults.fromValue(map['result'] as String)
+          : NotificationResults.undefined,
+      map['message'] as String?,
+    );
+  }
+
+  /// Converts this [NotificationException] to a [Map] suitable for sending over the platform channel.
+  Map<String, dynamic> toMap() {
+    return {
+      'result': result.value,
+      'message': message,
+    };
+  }
+
+  @override
+  String toString() =>
+      'NotificationException(${result.value}${message != null ? ': $message' : ''})';
+}

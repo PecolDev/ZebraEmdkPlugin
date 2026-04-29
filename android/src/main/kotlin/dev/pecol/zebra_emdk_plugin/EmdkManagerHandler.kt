@@ -1,6 +1,7 @@
 package dev.pecol.zebra_emdk_plugin
 
 import android.content.Context
+import android.util.Log
 import com.symbol.emdk.EMDKManager
 import com.symbol.emdk.EMDKManager.EMDKListener
 import com.symbol.emdk.ProfileManager
@@ -46,12 +47,17 @@ class EmdkManagerHandler : StreamHandler, MethodCallHandler, EMDKListener {
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
-        when (methodCall.method){
-            "initialize" -> result.success(initialize())
-            "dispose" -> {
-                emdkManager.release()
-                result.success(true)
+        try {
+            when (methodCall.method){
+                "initialize" -> result.success(initialize())
+                "dispose" -> {
+                    emdkManager.release()
+                    result.success(true)
+                }
             }
+        } catch (e: Exception) {
+            Log.e("EmdkManagerHandler", "Unexpected exception in ${methodCall.method}: ${e.message}", e)
+            result.error("NATIVE_EXCEPTION", e.message, null)
         }
     }
     // -----------------------------------------------------------------------
@@ -84,20 +90,29 @@ class EmdkManagerHandler : StreamHandler, MethodCallHandler, EMDKListener {
 
         this.emdkManager = emdkManager
 
-        val barcodeManager: BarcodeManager = emdkManager.getInstance(EMDKManager.FEATURE_TYPE.BARCODE) as BarcodeManager
-        barcodeManagerHandler.initializeHandler(barcodeManager)
+        try {
+            val barcodeManager: BarcodeManager = emdkManager.getInstance(EMDKManager.FEATURE_TYPE.BARCODE) as BarcodeManager
+            barcodeManagerHandler.initializeHandler(barcodeManager)
 
-        val notificationManager: NotificationManager = emdkManager.getInstance(EMDKManager.FEATURE_TYPE.NOTIFICATION) as NotificationManager
-        notificationManagerHandler.initializeHandler(notificationManager)
+            val notificationManager: NotificationManager = emdkManager.getInstance(EMDKManager.FEATURE_TYPE.NOTIFICATION) as NotificationManager
+            notificationManagerHandler.initializeHandler(notificationManager)
 
-        val profileManager: ProfileManager = emdkManager.getInstance(EMDKManager.FEATURE_TYPE.PROFILE) as ProfileManager
-        profileManagerHandler.initializeHandler(profileManager, applicationContext)
+            val profileManager: ProfileManager = emdkManager.getInstance(EMDKManager.FEATURE_TYPE.PROFILE) as ProfileManager
+            profileManagerHandler.initializeHandler(profileManager, applicationContext)
 
-        eventSink?.sendEvent("onOpened")
+            eventSink?.sendEvent("onOpened")
+        } catch (e: Exception) {
+            Log.e("EmdkManagerHandler", "Exception during onOpened feature acquisition: ${e.message}", e)
+            eventSink?.error("EMDK_EXCEPTION", e.message, null)
+        }
     }
 
     override fun onClosed() {
-        emdkManager.release()
+        try {
+            emdkManager.release()
+        } catch (e: Exception) {
+            Log.w("EmdkManagerHandler", "Exception during emdkManager.release() in onClosed: ${e.message}")
+        }
 
         eventSink?.sendEvent("onClosed")
     }

@@ -305,3 +305,51 @@ class ProfileResultData {
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// EMDKException
+// ---------------------------------------------------------------------------
+
+/// Exception thrown by EMDK core operations (e.g. opening the EMDK manager
+/// or requesting a feature instance) when an error occurs at the SDK level.
+///
+/// The [result] field mirrors the [EMDKResults] returned by the SDK, giving
+/// access to both the primary [EMDKStatusCode] and the [EMDKExtendedStatusCode].
+///
+/// See: https://techdocs.zebra.com/emdk-for-android/latest/api/reference/com/symbol/emdk/EMDKException/
+class EMDKException implements Exception {
+  /// The EMDK result describing why the exception was thrown.
+  ///
+  /// May be null when no structured result data is available (e.g. low-level
+  /// Android exceptions propagated from the native layer).
+  final EMDKResults? result;
+
+  /// Optional human-readable message accompanying the exception.
+  final String? message;
+
+  const EMDKException([this.result, this.message]);
+
+  /// Creates an [EMDKException] from a [Map] received via the platform channel.
+  factory EMDKException.fromMap(Map<String, dynamic> map) {
+    return EMDKException(
+      map['result'] != null
+          ? EMDKResults.fromMap(Map<String, dynamic>.from(map['result'] as Map))
+          : null,
+      map['message'] as String?,
+    );
+  }
+
+  /// Converts this [EMDKException] to a [Map] suitable for sending over the platform channel.
+  Map<String, dynamic> toMap() {
+    return {
+      'result': result?.toMap(),
+      'message': message,
+    };
+  }
+
+  @override
+  String toString() {
+    final code = result?.statusCode?.value ?? 'UNKNOWN';
+    return 'EMDKException($code${message != null ? ': $message' : ''})';
+  }
+}

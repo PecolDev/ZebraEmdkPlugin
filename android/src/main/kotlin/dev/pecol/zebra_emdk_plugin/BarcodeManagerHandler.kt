@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.util.Log
 import com.symbol.emdk.barcode.BarcodeManager
 import com.symbol.emdk.barcode.BarcodeManager.ConnectionState
 import com.symbol.emdk.barcode.BarcodeManager.ScannerConnectionListener
@@ -46,32 +47,39 @@ class BarcodeManagerHandler : StreamHandler, MethodCallHandler, ScannerConnectio
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
-        when (methodCall.method){
-            "getSupportedScanners" -> result.success(getSupportedScanners(false))
-            "getConnectedScanners" -> result.success(getSupportedScanners(true))
-            "initScanner" -> {
-                val friendlyName = methodCall.arguments as? String
-                if (friendlyName == null) {
-                    result.error("INVALID_ARGS", "Expected a String argument (friendlyName)", null)
-                    return
+        try {
+            when (methodCall.method){
+                "getSupportedScanners" -> result.success(getSupportedScanners(false))
+                "getConnectedScanners" -> result.success(getSupportedScanners(true))
+                "initScanner" -> {
+                    val friendlyName = methodCall.arguments as? String
+                    if (friendlyName == null) {
+                        result.error("INVALID_ARGS", "Expected a String argument (friendlyName)", null)
+                        return
+                    }
+                    result.success(initScanner(friendlyName))
                 }
-                result.success(initScanner(friendlyName))
-            }
-            "deinitScanner" -> result.success(deinitScanner())
-            "getScannerInfo" -> result.success(getScannerInfo())
-            "enableRead" -> result.success(enableRead())
-            "disableRead" -> result.success(disableRead())
-            "getConfig" -> result.success(getConfig())
-            "setConfig" -> {
-                @Suppress("UNCHECKED_CAST")
-                val configMap = methodCall.arguments as? Map<String, Any?>
-                if (configMap == null) {
-                    result.error("INVALID_ARGS", "Expected a Map argument (config)", null)
-                    return
+                "deinitScanner" -> result.success(deinitScanner())
+                "getScannerInfo" -> result.success(getScannerInfo())
+                "enableRead" -> result.success(enableRead())
+                "disableRead" -> result.success(disableRead())
+                "getConfig" -> result.success(getConfig())
+                "setConfig" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val configMap = methodCall.arguments as? Map<String, Any?>
+                    if (configMap == null) {
+                        result.error("INVALID_ARGS", "Expected a Map argument (config)", null)
+                        return
+                    }
+                    result.success(setConfig(configMap))
                 }
-                result.success(setConfig(configMap))
             }
-
+        } catch (e: ScannerException) {
+            Log.e("BarcodeManagerHandler", "ScannerException in ${methodCall.method}: ${e.message}", e)
+            result.error("SCANNER_EXCEPTION", e.message, mapOf("result" to e.result.name))
+        } catch (e: Exception) {
+            Log.e("BarcodeManagerHandler", "Unexpected exception in ${methodCall.method}: ${e.message}", e)
+            result.error("NATIVE_EXCEPTION", e.message, null)
         }
     }
     // -----------------------------------------------------------------------
@@ -128,16 +136,9 @@ class BarcodeManagerHandler : StreamHandler, MethodCallHandler, ScannerConnectio
         currentScanner = barcodeManager.getDevice(scannerInfo)
 
         if(currentScanner != null){
-            try{
-                currentScanner!!.addDataListener(this)
-                currentScanner!!.addStatusListener(this)
-                currentScanner!!.enable()
-            }
-            catch (error: ScannerException){
-                deinitScanner()
-                return false
-            }
-
+            currentScanner!!.addDataListener(this)
+            currentScanner!!.addStatusListener(this)
+            currentScanner!!.enable() // ScannerException propagates to onMethodCall catch
             return true
         }
 
@@ -153,8 +154,9 @@ class BarcodeManagerHandler : StreamHandler, MethodCallHandler, ScannerConnectio
             currentScanner!!.removeStatusListener(this)
             currentScanner!!.release()
         }
-        catch (error: ScannerException){
-
+        catch (e: ScannerException){
+            // During deinit, log but do not propagate — we always want cleanup to finish.
+            Log.w("BarcodeManagerHandler", "ScannerException during deinit (ignored): ${e.result.name} - ${e.message}")
         }
         finally{
             currentScanner = null

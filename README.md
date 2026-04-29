@@ -227,6 +227,29 @@ await emdk.barcodeManager.setConfig(updated);
 
 ---
 
+## Error Handling
+
+All `invokeMethod` calls throw a typed Dart exception instead of returning `null` on failure:
+
+| Dart exception | When thrown |
+|----------------|-------------|
+| `ScannerException` | A barcode scanner operation fails (e.g. `initScanner`, `enableRead`, `setConfig`) |
+| `NotificationException` | A notification device operation fails (e.g. `initDevice`, `notify`) |
+| `EMDKException` | The EMDK manager fails to open or a feature instance cannot be acquired |
+| `PlatformException` | Any unexpected native exception not mapped to an EMDK type |
+
+```dart
+try {
+  await emdk.barcodeManager.initScanner(friendlyName);
+} on ScannerException catch (e) {
+  print('Scanner error: ${e.result.value} — ${e.message}');
+} on PlatformException catch (e) {
+  print('Native error: ${e.code} — ${e.message}');
+}
+```
+
+
+
 ## Platform Support
 
 | Platform | Supported |

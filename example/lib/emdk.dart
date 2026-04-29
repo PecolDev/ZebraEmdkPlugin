@@ -138,18 +138,26 @@ class Emdk {
         final scanner = scanners.where((e) => e.friendlyName == friendlyName).firstOrNull;
 
         if(scanner != null){
-          var result = await _emdkManager.barcodeManager.initScanner(scanner.friendlyName!);
+          try{
+            var result = await _emdkManager.barcodeManager.initScanner(scanner.friendlyName!);
 
-          if(result == true) return true;
+            if(result == true) return true;
+          }on Exception {
+            await _emdkManager.barcodeManager.deinitScanner();
+          }
         }
       }
 
       final scanner = scanners.where((e) => e.isDefaultScanner ?? false).firstOrNull;
 
       if(scanner != null){
-        var result = await _emdkManager.barcodeManager.initScanner(scanner.friendlyName!);
+        try{
+          var result = await _emdkManager.barcodeManager.initScanner(scanner.friendlyName!);
 
-        if(result == true) return true;
+          if(result == true) return true;
+        }on Exception {
+          await _emdkManager.barcodeManager.deinitScanner();
+        }
       }
     }
 
@@ -166,18 +174,26 @@ class Emdk {
         final device = scanners.where((e) => e.friendlyName == friendlyName).firstOrNull;
 
         if(device != null){
-          var result = await _emdkManager.notificationManager.initDevice(device.friendlyName!);
+          try{
+            var result = await _emdkManager.notificationManager.initDevice(device.friendlyName!);
 
-          if(result == true) return true;
+            if(result == true) return true;
+          } on Exception {
+            await _emdkManager.notificationManager.deinitDevice();
+          }
         }
       }
 
       final device = scanners.where((e) => e.isDefaultDevice ?? false).firstOrNull;
 
       if(device != null){
-        var result = await _emdkManager.notificationManager.initDevice(device.friendlyName!);
+        try{
+          var result = await _emdkManager.notificationManager.initDevice(device.friendlyName!);
 
-        if(result == true) return true;
+          if(result == true) return true;
+        } on Exception {
+          await _emdkManager.notificationManager.deinitDevice();
+        }
       }
     }
 

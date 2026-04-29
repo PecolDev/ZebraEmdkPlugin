@@ -42,38 +42,43 @@ class ProfileManagerHandler : EventChannel.StreamHandler, MethodCallHandler, Dat
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
-        when (methodCall.method){
-            "processProfile" -> {
-                val characteristics = methodCall.arguments as? String
-                if (characteristics == null) {
-                    result.error("INVALID_ARGS", "characteristics must be non-null strings", null)
-                    return
+        try {
+            when (methodCall.method){
+                "processProfile" -> {
+                    val characteristics = methodCall.arguments as? String
+                    if (characteristics == null) {
+                        result.error("INVALID_ARGS", "characteristics must be non-null strings", null)
+                        return
+                    }
+
+                    processProfile(characteristics)
+
+                    result.success(true)
                 }
+                "requestServicePermission" -> {
+                    val uriTarget = methodCall.arguments as? String
+                    if (uriTarget == null) {
+                        result.error("INVALID_ARGS", "Expected a String argument (uriTarget)", null)
+                        return
+                    }
 
-                processProfile(characteristics)
+                    requestServicePermission(uriTarget)
 
-                result.success(true)
-            }
-            "requestServicePermission" -> {
-                val uriTarget = methodCall.arguments as? String
-                if (uriTarget == null) {
-                    result.error("INVALID_ARGS", "Expected a String argument (uriTarget)", null)
-                    return
+                    result.success(true)
                 }
+                "resolveCursorUri" -> {
+                    val uriTarget = methodCall.arguments as? String
+                    if (uriTarget == null) {
+                        result.error("INVALID_ARGS", "Expected a String argument (uriTarget)", null)
+                        return
+                    }
 
-                requestServicePermission(uriTarget)
-
-                result.success(true)
-            }
-            "resolveCursorUri" -> {
-                val uriTarget = methodCall.arguments as? String
-                if (uriTarget == null) {
-                    result.error("INVALID_ARGS", "Expected a String argument (uriTarget)", null)
-                    return
+                    result.success(resolveCursorUri(uriTarget))
                 }
-
-                result.success(resolveCursorUri(uriTarget))
             }
+        } catch (e: Exception) {
+            Log.e("ProfileManagerHandler", "Unexpected exception in ${methodCall.method}: ${e.message}", e)
+            result.error("NATIVE_EXCEPTION", e.message, null)
         }
     }
     // -----------------------------------------------------------------------

@@ -1,5 +1,6 @@
 package dev.pecol.zebra_emdk_plugin
 
+import android.util.Log
 import com.symbol.emdk.notification.Notification
 import com.symbol.emdk.notification.Notification.Beep
 import com.symbol.emdk.notification.Notification.BeepParams
@@ -37,28 +38,36 @@ class NotificationManagerHandler : EventChannel.StreamHandler, MethodCallHandler
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
-        when (methodCall.method){
-            "getSupportedDevices" -> result.success(getSupportedDevices(false))
-            "getConnectedDevices" -> result.success(getSupportedDevices(true))
-            "initDevice" -> {
-                val friendlyName = methodCall.arguments as? String
-                if (friendlyName == null) {
-                    result.error("INVALID_ARGS", "Expected a String argument (friendlyName)", null)
-                    return
+        try {
+            when (methodCall.method){
+                "getSupportedDevices" -> result.success(getSupportedDevices(false))
+                "getConnectedDevices" -> result.success(getSupportedDevices(true))
+                "initDevice" -> {
+                    val friendlyName = methodCall.arguments as? String
+                    if (friendlyName == null) {
+                        result.error("INVALID_ARGS", "Expected a String argument (friendlyName)", null)
+                        return
+                    }
+                    result.success(initDevice(friendlyName))
                 }
-                result.success(initDevice(friendlyName))
-            }
-            "deinitDevice" -> result.success(deinitDevice())
-            "getDeviceInfo" -> result.success(getDeviceInfo())
-            "notify" -> {
-                @Suppress("UNCHECKED_CAST")
-                val commandMap = methodCall.arguments as? Map<String, Any?>
-                if (commandMap == null) {
-                    result.error("INVALID_ARGS", "Expected a Map argument (command)", null)
-                    return
+                "deinitDevice" -> result.success(deinitDevice())
+                "getDeviceInfo" -> result.success(getDeviceInfo())
+                "notify" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val commandMap = methodCall.arguments as? Map<String, Any?>
+                    if (commandMap == null) {
+                        result.error("INVALID_ARGS", "Expected a Map argument (command)", null)
+                        return
+                    }
+                    result.success(triggerNotification(commandMap))
                 }
-                result.success(triggerNotification(commandMap))
             }
+        } catch (e: NotificationException) {
+            Log.e("NotificationManagerHandler", "NotificationException in ${methodCall.method}: ${e.message}", e)
+            result.error("NOTIFICATION_EXCEPTION", e.message, mapOf("result" to e.result.name))
+        } catch (e: Exception) {
+            Log.e("NotificationManagerHandler", "Unexpected exception in ${methodCall.method}: ${e.message}", e)
+            result.error("NATIVE_EXCEPTION", e.message, null)
         }
     }
     // -----------------------------------------------------------------------
@@ -103,15 +112,7 @@ class NotificationManagerHandler : EventChannel.StreamHandler, MethodCallHandler
         currentDevice = notificationManager.getDevice(deviceInfo)
 
         if(currentDevice != null){
-            try{
-                currentDevice!!.enable()
-            }
-            catch (error: NotificationException){
-                deinitDevice()
-
-                return false
-            }
-
+            currentDevice!!.enable() // NotificationException propagates to onMethodCall catch
             return true
         }
 
@@ -125,8 +126,9 @@ class NotificationManagerHandler : EventChannel.StreamHandler, MethodCallHandler
             currentDevice!!.disable()
             currentDevice!!.release()
         }
-        catch (error: NotificationException){
-
+        catch (e: NotificationException){
+            // During deinit, log but do not propagate — cleanup must always finish.
+            Log.w("NotificationManagerHandler", "NotificationException during deinit (ignored): ${e.result.name} - ${e.message}")
         }
         finally {
             currentDevice = null
